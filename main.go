@@ -74,12 +74,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pods, err := clientset.CoreV1().Pods("").List(metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
 	restClient := clientset.AppsV1beta1().RESTClient()
 	watchlist := cache.NewListWatchFromClient(restClient, "deployments", corev1.NamespaceAll, fields.Everything())
 
@@ -128,7 +122,6 @@ func getConfig(runningOutside bool, kubeconfig string) (*rest.Config, error) {
 
 // func initializeDeployment(deployment *v1beta1.Deployment, c *config, clientset *kubernetes.Clientset) error {
 func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.Clientset) error {
-	log.Printf("In initializeDeployment")
 
 	//TODO: allow configuration to be overidden
 	vaultConfig := vault.DefaultConfig()
@@ -138,10 +131,8 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 	}
 
 	if deployment.ObjectMeta.GetInitializers() != nil {
-		log.Printf("We have initializers")
 		pendingInitializers := deployment.ObjectMeta.GetInitializers().Pending
 
-		log.Printf("Init Name: %s and pending name: %s", initializerName, pendingInitializers[0].Name)
 		if initializerName == pendingInitializers[0].Name {
 			log.Printf("Initializing deployment: %s", deployment.Name)
 
@@ -150,12 +141,6 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				return err
 			}
 			initializedDeployment := o.(*v1beta1.Deployment)
-
-			//deployData, err := json.Marshal(deployment)
-			//if err != nil {
-			//	return err
-			//}
-			//fmt.Println(string(deployData))
 
 			// Remove self from the list of pending Initializers while preserving ordering.
 			if len(pendingInitializers) == 1 {
@@ -176,15 +161,15 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 
 			// Modify the Deployments Pod template to add environment variable
 
-			fmt.Println("Printing envars")
+			log.Printf("Existing Environment Variables for container '%s':", initializedDeployment.Spec.Template.Spec.Containers[0].Name)
 			for _, element := range initializedDeployment.Spec.Template.Spec.Containers[0].Env {
-				fmt.Printf("Env Var %s = %s", element.Name, element.Value)
+				log.Printf("\t%s = %s\n", element.Name, element.Value)
 			}
-			fmt.Println("Printed!!!!")
 
 			// Add environment variables from vault
 			containerName := initializedDeployment.Spec.Template.Spec.Containers[0].Name
 			vaultPath := fmt.Sprintf("/v1/secret/%s/%s", initializedDeployment.Namespace, containerName)
+			log.Printf("Querying vault with path: %s", vaultPath)
 			request := vaultClient.NewRequest("GET", vaultPath)
 			request.ClientToken = "bfb01bd1-c27c-102c-5f3a-919de99853c5" //TODO: work out how to ghet this
 			//request.Params.Set("list", "true")
@@ -196,7 +181,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				return err
 			}
 			if resp != nil && resp.StatusCode == 404 {
-				fmt.Printf("No secrets in vault for path %s", vaultPath)
+				log.Printf("No secrets in vault for path %s", vaultPath)
 				_, err = clientset.AppsV1beta1().Deployments(deployment.Namespace).Update(initializedDeployment)
 				if err != nil {
 					return err
@@ -208,7 +193,6 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				return err
 			}
 			for key, value := range secret.Data {
-				fmt.Println("Key:", key, "Value:", value)
 				env := corev1.EnvVar{Name: key, Value: value.(string)}
 				initializedDeployment.Spec.Template.Spec.Containers[0].Env = append(initializedDeployment.Spec.Template.Spec.Containers[0].Env, env)
 			}
@@ -217,37 +201,31 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 			//env := corev1.EnvVar{Name: "CTM_TEST", Value: "HELLO"}
 			//initializedDeployment.Spec.Template.Spec.Containers[0].Env = append(initializedDeployment.Spec.Template.Spec.Containers[0].Env, env)
 
-			fmt.Println("Re-Printing envars")
+			log.Printf("Modified Environment Variables for container '%s':", initializedDeployment.Spec.Template.Spec.Containers[0].Name)
 			for _, element := range initializedDeployment.Spec.Template.Spec.Containers[0].Env {
-				fmt.Printf("Env Var %s = %s", element.Name, element.Value)
+				log.Printf("\t%s = %s\n", element.Name, element.Value)
 			}
-			fmt.Println("Re-Printed!!!!")
 
 			oldData, err := json.Marshal(deployment)
 			if err != nil {
 				return err
 			}
-			//fmt.Println("Old Data")
-			//fmt.Println(string(oldData))
 
 			newData, err := json.Marshal(initializedDeployment)
 			if err != nil {
 				return err
 			}
-			//fmt.Println("New Data")
-			//fmt.Println(string(newData))
 
 			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, v1beta1.Deployment{})
 			if err != nil {
 				return err
 			}
-			fmt.Println("Created TwoWayMergePatch")
 
 			_, err = clientset.AppsV1beta1().Deployments(deployment.Namespace).Patch(deployment.Name, types.StrategicMergePatchType, patchBytes)
 			if err != nil {
 				return err
 			}
-			fmt.Println("Patched Deployment")
+			log.Printf("Patched Deployment: %s\n", deployment.Name)
 		}
 	}
 	return nil
