@@ -10,6 +10,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+const (
+	defaultAnnotation = "initializer.kubernetes.io/vault"
+)
+
 // GetInitializerConfig gets the initializer configuration from a Kubernetes configmap
 func GetInitializerConfig(kube kubernetes.Interface, namespace, configName string) (*model.Config, error) {
 	log.Printf("Reading config  %s in namespace %s", configName, namespace)
@@ -21,6 +25,10 @@ func GetInitializerConfig(kube kubernetes.Interface, namespace, configName strin
 	config, err := configmapToConfig(cm)
 	if err != nil {
 		return nil, err
+	}
+
+	if config.AnnotatioName == "" {
+		config.AnnotatioName = defaultAnnotation
 	}
 
 	return config, nil

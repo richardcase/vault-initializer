@@ -30,11 +30,9 @@ import (
 )
 
 const (
-	defaultAnnotation      = "initializer.kubernetes.io/vault"
 	defaultInitializerName = "vault.initializer.kubernetes.io"
 	defaultConfigmap       = "vault-initializer"
 	defaultSecret          = "vault-initializer"
-	defaultNamespace       = "default"
 )
 
 var (
@@ -173,10 +171,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				if !ok {
 					log.Printf("Required '%s' annotation missing; skipping vault injection", config.AnnotatioName)
 					_, err = clientset.AppsV1beta1().Deployments(deployment.Namespace).Update(initializedDeployment)
-					if err != nil {
-						return err
-					}
-					return nil
+					return err
 				}
 			}
 
@@ -189,12 +184,16 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				request.ClientToken = secrets["vaultToken"]
 			}
 			resp, err := vaultClient.RawRequest(request)
-			if resp != nil && resp.Body != nil {
-				defer resp.Body.Close()
-			}
 			if err != nil {
 				return err
 			}
+
+			defer func() {
+				if resp != nil && resp.Body != nil {
+					_ = resp.Body.Close()
+				}
+			}()
+
 			if resp != nil && resp.StatusCode == 404 {
 				log.Printf("No secrets in vault for path %s", vaultPath)
 				_, err = clientset.AppsV1beta1().Deployments(deployment.Namespace).Update(initializedDeployment)
