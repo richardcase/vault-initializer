@@ -1,0 +1,23 @@
+language: go
+go: 1.9.1
+install: make setup
+script: 
+  - make ci 
+  - make build-prod
+after_success:
+    - export REPO_VAULTINIT=richardcase/vault-initializer
+    - export VERSION=`cat ./VERSION`
+    - export BUILDDATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+    - echo $VERSION
+    - echo $BUILDDATE
+    - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH ; fi`
+    - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+    - docker build -f  Dockerfile -t $REPO_VAULTINIT:$COMMIT --build-arg BUILD_DATE=$BUILDDATE --build-arg VCS_REF=$COMMIT --build-arg VERSION=$VERSION .
+    - docker tag $REPO_VAULTINIT:$COMMIT $REPO_VAULTINIT:$TAG
+    - docker tag $REPO_VAULTINIT:$COMMIT $REPO_VAULTINIT:travis-$TRAVIS_BUILD_NUMBER
+    - docker tag $REPO_VAULTINIT:$COMMIT $REPO_VAULTINIT:$VERSION
+    - docker push $REPO_VAULTINIT
+
+env:
+    global:
+        - COMMIT=${TRAVIS_COMMIT::8}

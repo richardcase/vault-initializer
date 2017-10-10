@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-initializer
+data:
+  config: |
+    requireAnnotation: false
+    annotationName: initializer.kubernetes.io/vault
+    ignoreSystemNamespaces: true
+    vaultAuthMode: Token # Todo add other vault auth backends
+    vaultAddress: http://127.0.0.1:8200
+    vaultPathPattern: /v1/secret/%s/%s # TOOD: change this to template
