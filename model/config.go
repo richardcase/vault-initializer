@@ -8,4 +8,5 @@ type Config struct {
 	VaultAuthMode          string `yaml:"vaultAuthMode"` //TODO: enum??
 	VaultAddress           string `yaml:"vaultAddress"`
 	VaultPathPattern       string `yaml:"vaultPathPattern"`
+	SecretsPublisher       string `yaml:"secretsPublisher"`
 }

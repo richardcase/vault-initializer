@@ -3,7 +3,7 @@ package inject
 import (
 	"log"
 
-	"github.com/richardcase/k8sinit/model"
+	"github.com/richardcase/vault-initializer/model"
 	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

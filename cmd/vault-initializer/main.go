@@ -1,18 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
-	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/richardcase/k8sinit/model"
-
-	"github.com/richardcase/k8sinit/inject"
+	"github.com/richardcase/vault-initializer/inject"
+	"github.com/richardcase/vault-initializer/model"
 
 	vault "github.com/hashicorp/vault/api"
 	"k8s.io/api/apps/v1beta1"
@@ -128,6 +128,21 @@ func getConfig(runningOutside bool, kubeconfig string) (*rest.Config, error) {
 	return rest.InClusterConfig()
 }
 
+func createPath(deployment *v1beta1.Deployment, pathTemplate string) (string, error) {
+	pc := model.PathConfig{Namespace: deployment.Namespace, DeploymentName: deployment.Name, ContainerName: deployment.Spec.Template.Spec.Containers[0].Name}
+	tmpl, err := template.New("pathTemplate").Parse(pathTemplate)
+	if err != nil {
+		return "", err
+	}
+	buf := new(bytes.Buffer)
+	err = tmpl.Execute(buf, pc)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
 func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.Clientset) error {
 
 	//TODO: Move this else where
@@ -176,8 +191,10 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 			}
 
 			// Add environment variables from vault
-			containerName := initializedDeployment.Spec.Template.Spec.Containers[0].Name
-			vaultPath := fmt.Sprintf("/v1/secret/%s/%s", initializedDeployment.Namespace, containerName)
+			vaultPath, err := createPath(initializedDeployment, config.VaultPathPattern)
+			if err != nil {
+				return err
+			}
 			log.Printf("Querying vault with path: %s", vaultPath)
 			request := vaultClient.NewRequest("GET", vaultPath)
 			if config.VaultAuthMode == "Token" {
@@ -203,15 +220,30 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 			if err != nil {
 				return err
 			}
+			secrets = make(map[string]string)
 			for key, value := range secret.Data {
-				env := corev1.EnvVar{Name: key, Value: value.(string)}
-				initializedDeployment.Spec.Template.Spec.Containers[0].Env = append(initializedDeployment.Spec.Template.Spec.Containers[0].Env, env)
+				secrets[key] = value.(string)
+			}
+			publisher, err := inject.CreatePublisher(config.SecretsPublisher)
+			if err != nil {
+				return err
+			}
+			err = publisher.PublishSecrets(clientset, initializedDeployment, secrets)
+			if err != nil {
+				return err
 			}
 
 			oldData, err := json.Marshal(deployment)
 			if err != nil {
 				return err
 			}
+
+			// Flag that this container has vault secrets
+			if initializedDeployment.Spec.Template.Annotations == nil {
+				annotations := make(map[string]string)
+				initializedDeployment.Spec.Template.SetAnnotations(annotations)
+			}
+			initializedDeployment.Spec.Template.Annotations["vault-secrets-initialized"] = "true"
 
 			newData, err := json.Marshal(initializedDeployment)
 			if err != nil {

@@ -9,23 +9,11 @@
         "type": "go",
         "request": "launch",
         "mode": "debug",
-        "program": "${workspaceRoot}",
+        "program": "${workspaceRoot}/cmd/vault-initializer/",
         "args": [
-            "-outside -kubeconfig ~/.kube/config"
+            "-kubeconfig=/Users/richardcase/.kube/config",
+            "-outside"
         ]
-    },
-        {
-            "name": "Launch",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "remotePath": "",
-            "port": 2345,
-            "host": "127.0.0.1",
-            "program": "${fileDirname}",
-            "env": {},
-            "args": [],
-            "showLog": true
-        }
+    }
     ]
 }
