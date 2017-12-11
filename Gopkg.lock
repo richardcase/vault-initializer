@@ -213,12 +213,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/richardcase/k8sinit"
-  packages = ["inject","model"]
-  revision = "46409ff36c0b5e6a863bdf3fac384b9760209c44"
-
-[[projects]]
-  branch = "master"
   name = "github.com/sethgrid/pester"
   packages = ["."]
   revision = "0af5bab1e1ea2860c5aef8e77427bab011d774d8"
@@ -292,6 +286,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "21cf8af5bf86d6edf2cb57a18ed291b46b436f2ab94ee31c8eb61df3f8c76a09"
+  inputs-digest = "c28f294e16c2b48f044944c5381aa36f388203e282f8ad9905f9295a5a0e600f"
   solver-name = "gps-cdcl"
   solver-version = 1

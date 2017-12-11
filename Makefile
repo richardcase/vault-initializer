@@ -38,7 +38,7 @@ lint: ## Run all the linters
 ci: lint test ## Run all the tests and code checks
 
 build: ## Build a beta version
-	go build -o vault-initializer ./cmd/vault-initalizer/main.go
+	go build -o vault-initializer ./cmd/vault-initializer/.
 
 build-prod: ## Build the production version
 	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o vault-initializer ./cmd/vault-initializer/main.go
