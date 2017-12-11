@@ -17,3 +17,5 @@ coverage.out
 
 # auto-generated build files
 *BUILD-e
+
+.DS_Store
