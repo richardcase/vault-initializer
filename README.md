@@ -1,6 +1,8 @@
  # Vault Initializer [![Build Status](https://travis-ci.org/richardcase/vault-initializer.svg?branch=master)](https://travis-ci.org/richardcase/vault-initializer) #
  
-Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into new environment variables or a file for a container when a deployment is created.
+Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into a container when a deployment is created. It currentlu supports 2 ways to publish secrets into a container:
+- Environment Variables
+- A Kuberenets secret (automatically created) mounted as a volume.
 
 > This is a proof-of-concept and isn't production ready yet.
 
