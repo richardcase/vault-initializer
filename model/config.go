@@ -9,4 +9,7 @@ type Config struct {
 	VaultAddress           string `yaml:"vaultAddress"`
 	VaultPathPattern       string `yaml:"vaultPathPattern"`
 	SecretsPublisher       string `yaml:"secretsPublisher"`
+	SecretsFilePathPattern string `yaml:"secretsFilePathPattern"`
+	SecretsFileNamePattern string `yaml:"secretsFileNamePattern"`
+	SecretNamePattern      string `yaml:"secretNamePattern"`
 }

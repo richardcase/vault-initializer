@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
-	"html/template"
 	"log"
 	"os"
 	"os/signal"
@@ -128,21 +126,6 @@ func getConfig(runningOutside bool, kubeconfig string) (*rest.Config, error) {
 	return rest.InClusterConfig()
 }
 
-func createPath(deployment *v1beta1.Deployment, pathTemplate string) (string, error) {
-	pc := model.PathConfig{Namespace: deployment.Namespace, DeploymentName: deployment.Name, ContainerName: deployment.Spec.Template.Spec.Containers[0].Name}
-	tmpl, err := template.New("pathTemplate").Parse(pathTemplate)
-	if err != nil {
-		return "", err
-	}
-	buf := new(bytes.Buffer)
-	err = tmpl.Execute(buf, pc)
-	if err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
-}
-
 func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.Clientset) error {
 
 	//TODO: Move this else where
@@ -190,8 +173,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 				}
 			}
 
-			// Add environment variables from vault
-			vaultPath, err := createPath(initializedDeployment, config.VaultPathPattern)
+			vaultPath, err := inject.ResolveTemplate(initializedDeployment, config.VaultPathPattern)
 			if err != nil {
 				return err
 			}
@@ -202,6 +184,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 			}
 			resp, err := vaultClient.RawRequest(request)
 			if err != nil {
+				log.Printf("Error querying vault for secrets for %s: %v", vaultPath, err)
 				return err
 			}
 
@@ -228,7 +211,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, clientset *kubernetes.
 			if err != nil {
 				return err
 			}
-			err = publisher.PublishSecrets(clientset, initializedDeployment, secrets)
+			err = publisher.PublishSecrets(config, clientset, initializedDeployment, secrets)
 			if err != nil {
 				return err
 			}

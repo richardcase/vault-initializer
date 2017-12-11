@@ -1,6 +1,6 @@
  # Vault Initializer [![Build Status](https://travis-ci.org/richardcase/vault-initializer.svg?branch=master)](https://travis-ci.org/richardcase/vault-initializer) #
  
-Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into new environment variables for a container when a deployment is created.
+Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into new environment variables or a file for a container when a deployment is created.
 
 > This is a proof-of-concept and isn't production ready yet.
 
@@ -11,7 +11,7 @@ Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin
 You need Kubernetes 1.7.0+. If you want to use minikube you can use the following to spin up a cluster:
 
 ```
-minikube start --extra-config=apiserver.Admission.PluginNames="Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota" --kubernetes-version=v1.7.5
+minikube start --extra-config=apiserver.Admission.PluginNames="Initializers,NamespaceLifecycle,LimitRanger,ServiceAccount,ResourceQuota" --kubernetes-version=v1.8.0
 ```
 
 Edit and deploy the initializer config:
@@ -46,15 +46,18 @@ When the initializer runs it will look for secrets using the following conventio
 
 secret/{deploymentnamespace}/{containername}
 
-For all the secrets in the following path it will inject an enviroment variable into the container with the name of the secret and who's value is the value of the secret.
+For all the secrets in the following path it will inject an enviroment variable or an entry in a JSON config file into the container with the name of the secret and who's value is the value of the secret.
+
+This is controlled using the following template:
+```
+vaultPathPattern: /v1/secret/{{.Namespace}}/{{.ContainerName}}
+```
 
 For example, if we create a secret using the following:
 ```
 vault write secret/default/envprinter mysecret=Password123
 ```
-An envieonment variable named *mysecret* will be injected into a container named envprinter when the deployment namespace is *defaul*.
-
-> This needs to change to allow customization
+An environment variable named *mysecret* will be injected into a container named envprinter when the deployment namespace is *defaul*.
 
 ## Development
 The initializer can run outside of Kubernetes to help aid debugging. You can do this by:

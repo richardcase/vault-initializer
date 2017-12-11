@@ -12,5 +12,5 @@ data:
     vaultPathPattern: /v1/secret/{{.Namespace}}/{{.ContainerName}}
     secretsPublisher: volume # volume or env
     secretsFilePathPattern: /
-    secretsFileNamePattern: "config.json"
-    secretNamePattern: "{{.Namespace}}.{{.ContainerName}}"
+    secretsFileNamePattern: config.json
+

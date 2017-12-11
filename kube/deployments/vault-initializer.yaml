@@ -15,6 +15,6 @@ spec:
       name: vault-initializer
     spec:
       containers:
-        - name: vaukt-initializer
-          image: richardcase/vault-initializer:0.0.1
+        - name: vault-initializer
+          image: richardcase/vault-initializer:0.0.2
           imagePullPolicy: Always
