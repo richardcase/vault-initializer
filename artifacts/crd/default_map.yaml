@@ -1,0 +1,11 @@
+apiVersion: vaultinit.k8s.io/v1alpha1
+kind: VaultMap
+metadata:
+  name: default-vaultmap
+  namespace: default
+spec:
+  vaultPathPattern: /v1/secret/{{.Namespace}}/{{.ContainerName}}
+  secretsPublisher: volume # volume or env
+  secretsFilePathPattern: /
+  secretsFileNamePattern: "config.json"
+  secretNamePattern: "{{.Namespace}}.{{.ContainerName}}"
