@@ -13,16 +13,17 @@ import (
 	"github.com/richardcase/vault-initializer/pkg/inject"
 	"github.com/richardcase/vault-initializer/pkg/model"
 	"k8s.io/api/apps/v1beta1"
-	appsv1beta2 "k8s.io/api/apps/v1beta2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/watch"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	//appslisters "k8s.io/client-go/listers/apps/v1beta2"
-	appslisters "k8s.io/client-go/listers/apps/v1beta1"
+	appslisters "k8s.io/client-go/listers/apps/v1beta2"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -54,7 +55,8 @@ func NewInitializer(
 	namespace string,
 	configmapName string,
 	secretName string,
-	initializerName string) *Initializer {
+	initializerName string,
+	stopCh <-chan struct{}) *Initializer {
 
 	config, err := inject.GetInitializerConfig(kubeclientset, namespace, configmapName)
 	if err != nil {
@@ -66,20 +68,37 @@ func NewInitializer(
 		glog.Fatal(err)
 	}
 
+	//TODO: with the current version (v1.8) this doesn't pick up unitialized deployments
+	// see: https://github.com/kubernetes/kubernetes/pull/51247
 	//deploymentInformer := kubeInformerFactory.Apps().V1beta2().Deployments()
-	deploymentInformer := kubeInformerFactory.Apps().V1beta1().Deployments()
 	mapsInformer := mapsInformerFactory.Vaultinit().V1alpha1().VaultMaps()
+
+	// TODO: Remove this when the above is true
+	restClient := kubeclientset.AppsV1beta1().RESTClient()
+	watchList := cache.NewListWatchFromClient(restClient, "deployments", metav1.NamespaceAll, fields.Everything())
+	includeUninitializwdWatchList := &cache.ListWatch{
+		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+			options.IncludeUninitialized = true
+			return watchList.List(options)
+		},
+		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+			options.IncludeUninitialized = true
+			return watchList.Watch(options)
+		},
+	}
+	//**** End Temp Code
 
 	//TODO: event braodcaster?????
 
 	initializer := &Initializer{
-		kubeclientset:     kubeclientset,
-		mapclientset:      mapclientset,
-		namespace:         namespace,
-		config:            config,
-		secrets:           secrets,
-		deploymentsLister: deploymentInformer.Lister(),
-		deploymentsSynced: deploymentInformer.Informer().HasSynced,
+		kubeclientset: kubeclientset,
+		mapclientset:  mapclientset,
+		namespace:     namespace,
+		config:        config,
+		secrets:       secrets,
+		//deploymentsLister: deploymentInformer.Lister(),
+		//deploymentsSynced: deploymentInformer.Informer().HasSynced,
+		deploymentsLister: nil,
 		mapsLister:        mapsInformer.Lister(),
 		mapsSynced:        mapsInformer.Informer().HasSynced,
 		initializerName:   initializerName,
@@ -94,11 +113,12 @@ func NewInitializer(
 	})
 
 	// Setup event handler for when Deployments resources change
-	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	//deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, deploymentInfomer := cache.NewInformer(includeUninitializwdWatchList, &v1beta1.Deployment{}, time.Second*30, cache.ResourceEventHandlerFuncs{
 		AddFunc: initializer.handleObject,
 		UpdateFunc: func(old, new interface{}) {
-			newDepl := new.(*appsv1beta2.Deployment)
-			oldDepl := old.(*appsv1beta2.Deployment)
+			newDepl := new.(*v1beta1.Deployment)
+			oldDepl := old.(*v1beta1.Deployment)
 			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
 				glog.V(2).Infof("Skipping deployment %s as old and new versions are the same %s", newDepl.Name, newDepl.ResourceVersion)
 				return
@@ -108,7 +128,9 @@ func NewInitializer(
 		DeleteFunc: initializer.handleObject,
 	})
 
-	//TODO: resyncPeriod := 30 * time.Second
+	//NOTE: These are temporary
+	initializer.setDeploymentCache(deploymentInfomer.HasSynced)
+	go deploymentInfomer.Run(stopCh)
 
 	return initializer
 }
@@ -121,7 +143,8 @@ func (i *Initializer) Run(threadiness int, stopCh <-chan struct{}) error {
 
 	// Wait for the caches to be synced before starting workers
 	glog.Info("Waiting for informer caches to sync")
-	if ok := cache.WaitForCacheSync(stopCh, i.deploymentsSynced, i.mapsSynced); !ok {
+	//if ok := cache.WaitForCacheSync(stopCh, i.deploymentsSynced, i.mapsSynced); !ok {
+	if ok := cache.WaitForCacheSync(stopCh, i.mapsSynced); !ok {
 		return fmt.Errorf("Failed to wait for caches to sync")
 	}
 
@@ -154,12 +177,12 @@ func (i *Initializer) processNextWorkItem() bool {
 	err := func(obj interface{}) error {
 		defer i.workqueue.Done(obj)
 
-		var depl *appsv1beta2.Deployment
+		var depl *v1beta1.Deployment
 		var ok bool
 
-		if depl, ok = obj.(*appsv1beta2.Deployment); !ok {
+		if depl, ok = obj.(*v1beta1.Deployment); !ok {
 			i.workqueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("error processing deployment"))
+			utilruntime.HandleError(fmt.Errorf("Could cast deployment work item to v1beta1.Deployment"))
 			return nil
 		}
 
@@ -186,7 +209,7 @@ func (i *Initializer) handleObject(obj interface{}) {
 	i.workqueue.AddRateLimited(obj)
 }
 
-func (i *Initializer) initializeDeployment(deployment *appsv1beta2.Deployment) error {
+func (i *Initializer) initializeDeployment(deployment *v1beta1.Deployment) error {
 
 	//TODO: Move this else where
 	vaultConfig := vault.DefaultConfig()
@@ -244,7 +267,7 @@ func (i *Initializer) initializeDeployment(deployment *appsv1beta2.Deployment) e
 			}
 			resp, err := vaultClient.RawRequest(request)
 			if err != nil {
-				glog.Errorf("Error querying vault for secrets for %s: %v", vaultPath, err)
+				glog.Errorf("Error querying vault for secrets for %s: %v", vaultPath, err.Error())
 				return err
 			}
 
@@ -306,4 +329,9 @@ func (i *Initializer) initializeDeployment(deployment *appsv1beta2.Deployment) e
 		}
 	}
 	return nil
+}
+
+// NOTE: This is a function only until the deployment informer supports unitiilaized
+func (i *Initializer) setDeploymentCache(synced cache.InformerSynced) {
+	i.deploymentsSynced = synced
 }

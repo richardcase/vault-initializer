@@ -73,12 +73,13 @@ func main() {
 		namespace,
 		configmap,
 		secretName,
-		initializerName)
+		initializerName,
+		stopCH)
 
 	go kubeInformerFactory.Start(stopCH)
 	go mapInformerFactory.Start(stopCH)
 
-	if err = initializer.Run(2, stopCH); err != nil {
+	if err = initializer.Run(1, stopCH); err != nil {
 		glog.Fatalf("Error running initializer: %s", err.Error())
 	}
 }
