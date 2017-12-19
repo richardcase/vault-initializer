@@ -21,7 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	appslisters "k8s.io/client-go/listers/apps/v1beta2"
+	//appslisters "k8s.io/client-go/listers/apps/v1beta2"
+	appslisters "k8s.io/client-go/listers/apps/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 )
@@ -65,7 +66,8 @@ func NewInitializer(
 		glog.Fatal(err)
 	}
 
-	deploymentInformer := kubeInformerFactory.Apps().V1beta2().Deployments()
+	//deploymentInformer := kubeInformerFactory.Apps().V1beta2().Deployments()
+	deploymentInformer := kubeInformerFactory.Apps().V1beta1().Deployments()
 	mapsInformer := mapsInformerFactory.Vaultinit().V1alpha1().VaultMaps()
 
 	//TODO: event braodcaster?????
@@ -85,6 +87,12 @@ func NewInitializer(
 	}
 
 	glog.Info("Setting up event handlers")
+	mapsInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			glog.Infof("New map %v", obj)
+		},
+	})
+
 	// Setup event handler for when Deployments resources change
 	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: initializer.handleObject,
@@ -92,6 +100,7 @@ func NewInitializer(
 			newDepl := new.(*appsv1beta2.Deployment)
 			oldDepl := old.(*appsv1beta2.Deployment)
 			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				glog.V(2).Infof("Skipping deployment %s as old and new versions are the same %s", newDepl.Name, newDepl.ResourceVersion)
 				return
 			}
 			initializer.handleObject(new)
@@ -134,12 +143,14 @@ func (i *Initializer) runWorker() {
 }
 
 func (i *Initializer) processNextWorkItem() bool {
+	glog.V(2).Info("Enter processNextWorkItem")
 	obj, shutdown := i.workqueue.Get()
 
 	if shutdown {
 		return false
 	}
 
+	glog.V(2).Info("Starting processing queue item")
 	err := func(obj interface{}) error {
 		defer i.workqueue.Done(obj)
 
@@ -166,11 +177,12 @@ func (i *Initializer) processNextWorkItem() bool {
 		return true
 	}
 
-	return false
-
+	glog.V(2).Info("Exiting processNextWorkItem")
+	return true
 }
 
 func (i *Initializer) handleObject(obj interface{}) {
+	glog.V(2).Info("In handle object")
 	i.workqueue.AddRateLimited(obj)
 }
 

@@ -8,9 +8,9 @@ spec:
  scope: Namespaced
  names:
    plural: vaultmaps
-   singular: vaultmap
+#   singular: vaultmap
    kind: VaultMap
-   listKind: VaultMaps
+#   listKind: VaultMaps
  #validation:
  #  openAPIV3Schema:
  #    properties:
