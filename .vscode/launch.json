@@ -12,7 +12,8 @@
         "program": "${workspaceRoot}/cmd/vault-initializer/",
         "args": [
             "-kubeconfig=/Users/richardcase/.kube/config",
-            "-outside"
+            "-logtostderr=true",
+            "-v=2",
         ]
     }
     ]

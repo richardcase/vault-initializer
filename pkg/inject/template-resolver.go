@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"html/template"
 
-	"github.com/richardcase/vault-initializer/model"
+	"github.com/richardcase/vault-initializer/pkg/model"
 	"k8s.io/api/apps/v1beta1"
 )
 

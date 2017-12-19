@@ -3,7 +3,7 @@ package inject
 import (
 	"errors"
 
-	"github.com/richardcase/vault-initializer/model"
+	"github.com/richardcase/vault-initializer/pkg/model"
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/client-go/kubernetes"
 )
