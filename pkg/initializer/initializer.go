@@ -8,13 +8,16 @@ import (
 	"github.com/golang/glog"
 	vault "github.com/hashicorp/vault/api"
 	clientset "github.com/richardcase/vault-initializer/pkg/client/clientset/versioned"
+	mapscheme "github.com/richardcase/vault-initializer/pkg/client/clientset/versioned/scheme"
 	informers "github.com/richardcase/vault-initializer/pkg/client/informers/externalversions"
 	listers "github.com/richardcase/vault-initializer/pkg/client/listers/vaultinit/v1alpha1"
 	"github.com/richardcase/vault-initializer/pkg/inject"
 	"github.com/richardcase/vault-initializer/pkg/model"
 	"k8s.io/api/apps/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -23,10 +26,15 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1beta2"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 )
+
+const agentName = "vault-initializer"
 
 // Initializer is the implemntation for the vault initializer
 type Initializer struct {
@@ -44,6 +52,7 @@ type Initializer struct {
 	initializerName string
 
 	workqueue workqueue.RateLimitingInterface
+	recorder  record.EventRecorder
 }
 
 // NewInitializer returns a new vault initializer
@@ -88,7 +97,12 @@ func NewInitializer(
 	}
 	//**** End Temp Code
 
-	//TODO: event braodcaster?????
+	mapscheme.AddToScheme(scheme.Scheme)
+	glog.V(4).Info("Creating event broadcaster")
+	eventBroadcaster := record.NewBroadcaster()
+	eventBroadcaster.StartLogging(glog.Infof)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: agentName})
 
 	initializer := &Initializer{
 		kubeclientset: kubeclientset,
@@ -103,6 +117,7 @@ func NewInitializer(
 		mapsSynced:        mapsInformer.Informer().HasSynced,
 		initializerName:   initializerName,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "InitDeployments"),
+		recorder:          recorder,
 	}
 
 	glog.Info("Setting up event handlers")
@@ -187,7 +202,8 @@ func (i *Initializer) processNextWorkItem() bool {
 		}
 
 		if err := i.initializeDeployment(depl); err != nil {
-			return fmt.Errorf("Error initializing deployment. %v", err)
+			i.recorder.Event(depl, corev1.EventTypeWarning, "Error initialising deploymemnt", err.Error())
+			return nil
 		}
 
 		i.workqueue.Forget(obj)
@@ -256,7 +272,18 @@ func (i *Initializer) initializeDeployment(deployment *v1beta1.Deployment) error
 				}
 			}
 
-			vaultPath, err := inject.ResolveTemplate(initializedDeployment, i.config.VaultPathPattern)
+			maps, err := i.mapsLister.VaultMaps(initializedDeployment.Namespace).List(labels.NewSelector())
+			if err != nil {
+				return err
+			}
+			if len(maps) == 0 {
+				glog.V(2).Infof("No VaultMap for namespace %s; skipping vault injection", initializedDeployment.Namespace)
+				_, err = i.kubeclientset.AppsV1beta1().Deployments(deployment.Namespace).Update(initializedDeployment)
+				return err
+			}
+			vaultmap := maps[0]
+
+			vaultPath, err := inject.ResolveTemplate(initializedDeployment, vaultmap.Spec.VaultPathPattern)
 			if err != nil {
 				return err
 			}
@@ -290,11 +317,11 @@ func (i *Initializer) initializeDeployment(deployment *v1beta1.Deployment) error
 			for key, value := range secret.Data {
 				i.secrets[key] = value.(string)
 			}
-			publisher, err := inject.CreatePublisher(i.config.SecretsPublisher)
+			publisher, err := inject.CreatePublisher(vaultmap.Spec.SecretsPublisher)
 			if err != nil {
 				return err
 			}
-			err = publisher.PublishSecrets(i.config, i.kubeclientset.(*kubernetes.Clientset), initializedDeployment, secrets)
+			err = publisher.PublishSecrets(vaultmap, i.kubeclientset.(*kubernetes.Clientset), initializedDeployment, secrets)
 			if err != nil {
 				return err
 			}

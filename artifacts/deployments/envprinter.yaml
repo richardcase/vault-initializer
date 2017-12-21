@@ -4,8 +4,6 @@ metadata:
   labels:
     app: envprinter
   name: envprinter
-  #initializers:
-  #  pending: []
 spec:
   replicas: 1
   selector:

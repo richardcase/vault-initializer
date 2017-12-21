@@ -5,7 +5,7 @@ import (
 	"log"
 	"path"
 
-	"github.com/richardcase/vault-initializer/pkg/model"
+	"github.com/richardcase/vault-initializer/pkg/apis/vaultinit/v1alpha1"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,13 +16,13 @@ import (
 type VolumePublisher struct{}
 
 // PublishSecrets publishes secrets as a volume.
-func (p VolumePublisher) PublishSecrets(config *model.Config, clientset *kubernetes.Clientset, deployment *v1beta1.Deployment, secrets map[string]string) error {
+func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *kubernetes.Clientset, deployment *v1beta1.Deployment, secrets map[string]string) error {
 	namespace := deployment.Namespace
 
 	// Resolve templates
-	secretName, err := ResolveTemplate(deployment, config.SecretNamePattern)
-	secretFilePath, err := ResolveTemplate(deployment, config.SecretsFilePathPattern)
-	secretFileName, err := ResolveTemplate(deployment, config.SecretsFileNamePattern)
+	secretName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretNamePattern)
+	secretFilePath, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFilePathPattern)
+	secretFileName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFileNamePattern)
 
 	// Create full path to secret file
 	secretFullPath := path.Join(secretFilePath, secretFileName)
