@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// VolumePublisher is a secrets publisher that makes secrets available as a volumne
+// VolumePublisher is a secrets publisher that makes secrets available as a volume
 type VolumePublisher struct{}
 
 // PublishSecrets publishes secrets as a volume.
@@ -21,8 +21,17 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *
 
 	// Resolve templates
 	secretName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretNamePattern)
+	if err != nil {
+		return err
+	}
 	secretFilePath, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFilePathPattern)
+	if err != nil {
+		return err
+	}
 	secretFileName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFileNamePattern)
+	if err != nil {
+		return err
+	}
 
 	// Create full path to secret file
 	secretFullPath := path.Join(secretFilePath, secretFileName)

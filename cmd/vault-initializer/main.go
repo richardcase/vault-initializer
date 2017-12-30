@@ -7,12 +7,10 @@ import (
 	clientset "github.com/richardcase/vault-initializer/pkg/client/clientset/versioned"
 	informers "github.com/richardcase/vault-initializer/pkg/client/informers/externalversions"
 	"github.com/richardcase/vault-initializer/pkg/initializer"
-	"github.com/richardcase/vault-initializer/pkg/model"
 	"github.com/richardcase/vault-initializer/pkg/signals"
 
 	"github.com/golang/glog"
 
-	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -31,11 +29,11 @@ var (
 	kubeconfig      string
 	configmap       string
 	secretName      string
-	vaultConfig     *vault.Config
-	vaultClient     *vault.Client
-	secrets         map[string]string
-	config          *model.Config
-	masterURL       string
+	//vaultConfig     *vault.Config
+	//vaultClient     *vault.Client
+	//secrets         map[string]string
+	//config          *model.Config
+	masterURL string
 )
 
 func main() {
