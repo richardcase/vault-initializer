@@ -1,4 +1,4 @@
- # Vault Initializer [![Build Status](https://travis-ci.org/richardcase/vault-initializer.svg?branch=master)](https://travis-ci.org/richardcase/vault-initializer) #
+ # Vault Initializer [![Build Status](https://travis-ci.org/richardcase/vault-initializer.svg?branch=master)](https://travis-ci.org/richardcase/vault-initializer) [![Go Report Card](https://goreportcard.com/badge/github.com/richardcase/vault-initializer)](https://goreportcard.com/report/github.com/richardcase/vault-initializer) #
  
 Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into a container when a deployment is created. It currentlu supports 2 ways to publish secrets into a container:
 - Environment Variables
