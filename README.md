@@ -1,12 +1,10 @@
  # Vault Initializer [![Build Status](https://travis-ci.org/richardcase/vault-initializer.svg?branch=master)](https://travis-ci.org/richardcase/vault-initializer) [![Go Report Card](https://goreportcard.com/badge/github.com/richardcase/vault-initializer)](https://goreportcard.com/report/github.com/richardcase/vault-initializer) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) #
  
-Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into a container when a deployment is created. It currentlu supports 2 ways to publish secrets into a container:
+Vault Initializer is a [Kubernetes Initializer](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers) that injects secrets from Vault into a container when a deployment is created. It currently supports 2 ways to publish secrets into a container:
 - Environment Variables
-- A Kuberenets secret (automatically created) mounted as a volume.
+- A Kubernetes secret (automatically created) which is then mounted as a volume automatically into the POD.
 
-> This is a proof-of-concept and isn't production ready yet.
-
-> This is built based on the sample provided by Kelsey Hightower [here](https://github.com/kelseyhightower/kubernetes-initializer-tutorial).
+> This isn't production ready yet. If you would like to help making in production production ready then see the [contributing guide](CONTRIBUTING.md)
 
 ## Getting Started
 
