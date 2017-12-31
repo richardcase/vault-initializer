@@ -1,0 +1,21 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  labels:
+    app: envprinter
+  name: envprinter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: envprinter
+  template:
+    metadata:
+      labels:
+        app: envprinter
+      name: envprinter
+    spec:
+      containers:
+        - name: envprinter
+          image: richardcase/envprinter:0.0.1
+          imagePullPolicy: Always

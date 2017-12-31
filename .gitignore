@@ -19,3 +19,11 @@ coverage.out
 *BUILD-e
 
 .DS_Store
+
+
+# bazel
+bazel-bin
+bazel-genfiles
+bazel-vault-initializer
+bazel-out
+bazel-testlogs

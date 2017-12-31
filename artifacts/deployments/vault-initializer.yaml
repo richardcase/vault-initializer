@@ -1,0 +1,22 @@
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  initializers:
+    pending: []
+  labels:
+    app: vault-initializer
+  name: vault-initializer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-initializer
+  template:
+    metadata:
+      labels:
+        app: vault-initializer
+    spec:
+      containers:
+        - name: vault-initializer
+          image: richardcase/vault-initializer:0.0.3
+          imagePullPolicy: Always

@@ -1,6 +1,9 @@
 SOURCE_FILES?=$$(go list ./... | grep -v /vendor/)
 TEST_PATTERN?=.
 TEST_OPTIONS?=-race
+VERSION = $(shell cat ./VERSION)
+BUILDDATE= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+BUILDCOMMIT= $(shell git rev-parse HEAD)
 
 setup: ## Install all the build and lint dependencies
 	go get -u github.com/alecthomas/gometalinter
@@ -20,10 +23,12 @@ fmt: ## gofmt and goimports all go files
 	find . -name '*.go' -not -wholename './vendor/*' | while read -r file; do gofmt -w -s "$$file"; goimports -w "$$file"; done
 
 lint: ## Run all the linters
-	gometalinter --vendor --disable-all \
+	gometalinter \
+		--exclude=vendor \
+		--skip=pkg/client \
+		--disable-all \
 		--enable=deadcode \
 		--enable=ineffassign \
-		--enable=gosimple \
 		--enable=staticcheck \
 		--enable=gofmt \
 		--enable=goimports \
@@ -33,7 +38,23 @@ lint: ## Run all the linters
 		--enable=vet \
 		--enable=vetshadow \
 		--deadline=10m \
-		./...
+		./pkg/...
+	gometalinter \
+		--exclude=vendor \
+		--skip=pkg/client \
+		--disable-all \
+		--enable=deadcode \
+		--enable=ineffassign \
+		--enable=staticcheck \
+		--enable=gofmt \
+		--enable=goimports \
+		--enable=dupl \
+		--enable=misspell \
+		--enable=errcheck \
+		--enable=vet \
+		--enable=vetshadow \
+		--deadline=10m \
+		./cmd/...
 
 ci: lint test ## Run all the tests and code checks
 
@@ -41,7 +62,13 @@ build: ## Build a beta version
 	go build -o vault-initializer ./cmd/vault-initializer/.
 
 build-prod: ## Build the production version
-	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o vault-initializer ./cmd/vault-initializer/main.go
+	GOOS=linux go build -a \
+		--ldflags '-extldflags "-static" -X github.com/richardcase/vault-initializer/pkg/version.GitHash=$(BUILDCOMMIT) -X github.com/richardcase/vault-initializer/pkg/version.BuildDate=$(BUILDDATE) -X github.com/richardcase/vault-initializer/pkg/version.Version=$(VERSION)' \
+		-tags netgo \
+		-installsuffix netgo \
+		-o vault-initializer \
+		./cmd/vault-initializer/main.go
+
 
 install: ## Install to $GOPATH/src
 	go install ./cmd/...
