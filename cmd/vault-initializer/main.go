@@ -8,6 +8,7 @@ import (
 	informers "github.com/richardcase/vault-initializer/pkg/client/informers/externalversions"
 	"github.com/richardcase/vault-initializer/pkg/initializer"
 	"github.com/richardcase/vault-initializer/pkg/signals"
+	"github.com/richardcase/vault-initializer/pkg/version"
 
 	"github.com/golang/glog"
 
@@ -29,21 +30,18 @@ var (
 	kubeconfig      string
 	configmap       string
 	secretName      string
-	//vaultConfig     *vault.Config
-	//vaultClient     *vault.Client
-	//secrets         map[string]string
-	//config          *model.Config
-	masterURL string
+	masterURL       string
 )
 
 func main() {
 	flag.Parse()
 
-	stopCH := signals.SetupSignalHandler()
-
 	glog.Info("Starting the Kubernetes initializer...")
+	version.OutputVersion()
 	glog.V(2).Infof("Initializer name set to: %s", initializerName)
 	glog.V(2).Infof("Using kubeconfig: %s", kubeconfig)
+
+	stopCH := signals.SetupSignalHandler()
 
 	clusterConfig, err := clientcmd.BuildConfigFromFlags(masterURL, kubeconfig)
 	if err != nil {

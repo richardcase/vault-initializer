@@ -1,6 +1,9 @@
 SOURCE_FILES?=$$(go list ./... | grep -v /vendor/)
 TEST_PATTERN?=.
 TEST_OPTIONS?=-race
+VERSION = $(shell cat ./VERSION)
+BUILDDATE= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+BUILDCOMMIT= $(shell git rev-parse HEAD)
 
 setup: ## Install all the build and lint dependencies
 	go get -u github.com/alecthomas/gometalinter
@@ -59,7 +62,13 @@ build: ## Build a beta version
 	go build -o vault-initializer ./cmd/vault-initializer/.
 
 build-prod: ## Build the production version
-	GOOS=linux go build -a --ldflags '-extldflags "-static"' -tags netgo -installsuffix netgo -o vault-initializer ./cmd/vault-initializer/main.go
+	GOOS=linux go build -a \
+		--ldflags '-extldflags "-static" -X github.com/richardcase/vault-initializer/pkg/version.GitHash=$(BUILDCOMMIT) -X github.com/richardcase/vault-initializer/pkg/version.BuildDate=$(BUILDDATE) -X github.com/richardcase/vault-initializer/pkg/version.Version=$(VERSION)' \
+		-tags netgo \
+		-installsuffix netgo \
+		-o vault-initializer \
+		./cmd/vault-initializer/main.go
+
 
 install: ## Install to $GOPATH/src
 	go install ./cmd/...
