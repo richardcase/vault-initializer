@@ -3,8 +3,8 @@ go: 1.9.1
 install: 
   - npm install -g snyk
   - make setup
-script:
-  - snyk test 
+  - snyk test
+script: 
   - make ci 
   - make build-prod
 after_success:
