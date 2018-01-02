@@ -3,7 +3,7 @@ go: 1.9.1
 install: 
   - npm install -g snyk
   - make setup
-  - snyk test
+  - snyk test -d
 script: 
   - make ci 
   - make build-prod
@@ -24,4 +24,3 @@ after_success:
 env:
     global:
         - COMMIT=${TRAVIS_COMMIT::8}
-        - SNYK_TOKEN=${SNYK_API}

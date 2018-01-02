@@ -3,7 +3,9 @@ TEST_PATTERN?=.
 TEST_OPTIONS?=-race
 VERSION = $(shell cat ./VERSION)
 BUILDDATE= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
-BUILDCOMMIT= $(shell git rev-parse HEAD)
+BUILDCOMMIT= $(shell git rev-parse --short HEAD)
+VER_IMPORT=github.com/richardcase/vault-initializer/pkg/version
+FLAGS=-X $(VER_IMPORT).GitHash=$(BUILDCOMMIT) -X $(VER_IMPORT).BuildDate=$(BUILDDATE) -X $(VER_IMPORT).Version=$(VERSION)
 
 setup: ## Install all the build and lint dependencies
 	go get -u github.com/alecthomas/gometalinter
@@ -63,7 +65,7 @@ build: ## Build a beta version
 
 build-prod: ## Build the production version
 	GOOS=linux go build -a \
-		--ldflags '-extldflags "-static" -X github.com/richardcase/vault-initializer/pkg/version.GitHash=$(BUILDCOMMIT) -X github.com/richardcase/vault-initializer/pkg/version.BuildDate=$(BUILDDATE) -X github.com/richardcase/vault-initializer/pkg/version.Version=$(VERSION)' \
+		--ldflags '-extldflags "-static" $(FLAGS)' \
 		-tags netgo \
 		-installsuffix netgo \
 		-o vault-initializer \
