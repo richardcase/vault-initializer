@@ -6,7 +6,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	clientset "k8s.io/client-go/kubernetes"
 )
 
 const (
@@ -14,9 +14,9 @@ const (
 )
 
 // GetInitializerConfig gets the initializer configuration from a Kubernetes configmap
-func GetInitializerConfig(kube kubernetes.Interface, namespace, configName string) (*model.Config, error) {
+func GetInitializerConfig(client clientset.Interface, namespace, configName string) (*model.Config, error) {
 	glog.V(2).Infof("Reading config  %s in namespace %s", configName, namespace)
-	cm, err := kube.CoreV1().ConfigMaps(namespace).Get(configName, metav1.GetOptions{})
+	cm, err := client.Core().ConfigMaps(namespace).Get(configName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

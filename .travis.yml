@@ -1,9 +1,9 @@
 language: go
 go: 1.9.1
 install: 
-  - npm install -g snyk
+#  - npm install -g snyk
   - make setup
-  - snyk test -d
+#  - snyk test -d
 script: 
   - make ci 
   - make build-prod
