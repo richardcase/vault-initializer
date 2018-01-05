@@ -16,7 +16,7 @@ const (
 // GetInitializerConfig gets the initializer configuration from a Kubernetes configmap
 func GetInitializerConfig(client clientset.Interface, namespace, configName string) (*model.Config, error) {
 	glog.V(2).Infof("Reading config  %s in namespace %s", configName, namespace)
-	cm, err := client.Core().ConfigMaps(namespace).Get(configName, metav1.GetOptions{})
+	cm, err := client.CoreV1().ConfigMaps(namespace).Get(configName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
