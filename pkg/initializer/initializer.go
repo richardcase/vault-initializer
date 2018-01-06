@@ -12,6 +12,8 @@ import (
 	informers "github.com/richardcase/vault-initializer/pkg/client/informers/externalversions"
 	listers "github.com/richardcase/vault-initializer/pkg/client/listers/vaultinit/v1alpha1"
 	"github.com/richardcase/vault-initializer/pkg/inject"
+	"github.com/richardcase/vault-initializer/pkg/inject/publisher"
+	"github.com/richardcase/vault-initializer/pkg/inject/template"
 	"github.com/richardcase/vault-initializer/pkg/model"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -283,7 +285,7 @@ func (i *Initializer) initializeDeployment(deployment *v1beta1.Deployment) error
 			}
 			vaultmap := maps[0]
 
-			vaultPath, err := inject.ResolveTemplate(initializedDeployment, vaultmap.Spec.VaultPathPattern)
+			vaultPath, err := template.ResolveTemplate(initializedDeployment, vaultmap.Spec.VaultPathPattern)
 			if err != nil {
 				return err
 			}
@@ -317,7 +319,7 @@ func (i *Initializer) initializeDeployment(deployment *v1beta1.Deployment) error
 			for key, value := range secret.Data {
 				i.secrets[key] = value.(string)
 			}
-			publisher, err := inject.CreatePublisher(vaultmap.Spec.SecretsPublisher)
+			publisher, err := publisher.CreatePublisher(vaultmap.Spec.SecretsPublisher)
 			if err != nil {
 				return err
 			}

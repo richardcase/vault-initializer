@@ -1,4 +1,4 @@
-package inject
+package volume
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"path"
 
 	"github.com/richardcase/vault-initializer/pkg/apis/vaultinit/v1alpha1"
+	"github.com/richardcase/vault-initializer/pkg/inject/template"
 	"k8s.io/api/apps/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,15 +21,15 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *
 	namespace := deployment.Namespace
 
 	// Resolve templates
-	secretName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretNamePattern)
+	secretName, err := template.ResolveTemplate(deployment, vaultmap.Spec.SecretNamePattern)
 	if err != nil {
 		return err
 	}
-	secretFilePath, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFilePathPattern)
+	secretFilePath, err := template.ResolveTemplate(deployment, vaultmap.Spec.SecretsFilePathPattern)
 	if err != nil {
 		return err
 	}
-	secretFileName, err := ResolveTemplate(deployment, vaultmap.Spec.SecretsFileNamePattern)
+	secretFileName, err := template.ResolveTemplate(deployment, vaultmap.Spec.SecretsFileNamePattern)
 	if err != nil {
 		return err
 	}

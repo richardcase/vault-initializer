@@ -1,4 +1,4 @@
-package inject
+package environment
 
 import (
 	"github.com/richardcase/vault-initializer/pkg/apis/vaultinit/v1alpha1"

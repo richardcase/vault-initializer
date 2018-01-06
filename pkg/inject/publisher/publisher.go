@@ -1,9 +1,9 @@
-package inject
+package publisher
 
 import (
-	"errors"
-
 	"github.com/richardcase/vault-initializer/pkg/apis/vaultinit/v1alpha1"
+	"github.com/richardcase/vault-initializer/pkg/inject/publisher/environment"
+	"github.com/richardcase/vault-initializer/pkg/inject/publisher/volume"
 	"k8s.io/api/apps/v1beta1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -17,10 +17,10 @@ type Publisher interface {
 func CreatePublisher(publisherType string) (Publisher, error) {
 	switch publisherType {
 	case "env":
-		return new(EnvironmentPublisher), nil
+		return new(environment.EnvironmentPublisher), nil
 	case "volume":
-		return new(VolumePublisher), nil
+		return new(volume.VolumePublisher), nil
 	default:
-		return nil, errors.New("Invalid Publisher Type")
+		return nil, NewInvalidPublisherError(publisherType)
 	}
 }
