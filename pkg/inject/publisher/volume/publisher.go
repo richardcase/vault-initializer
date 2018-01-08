@@ -17,7 +17,7 @@ import (
 type VolumePublisher struct{}
 
 // PublishSecrets publishes secrets as a volume.
-func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *kubernetes.Clientset, deployment *v1beta1.Deployment, secrets map[string]string) error {
+func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, client kubernetes.Interface, deployment *v1beta1.Deployment, secrets map[string]string) error {
 	namespace := deployment.Namespace
 
 	// Resolve templates
@@ -51,7 +51,7 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *
 	secret.Type = corev1.SecretTypeOpaque
 	secret.Name = secretName
 
-	exists, err := secretExists(clientset, namespace, secretName)
+	exists, err := secretExists(client, namespace, secretName)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *
 		log.Printf("Secret %s already exists in namespace %s", secretName, namespace)
 	} else {
 		log.Printf("Creating secret %s in namespace %s", secretName, namespace)
-		_, err = clientset.CoreV1().Secrets(namespace).Create(&secret)
+		_, err = client.CoreV1().Secrets(namespace).Create(&secret)
 		if err != nil {
 			return err
 		}
@@ -84,8 +84,8 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *
 	return nil
 }
 
-func secretExists(clientset *kubernetes.Clientset, namespace string, secretName string) (bool, error) {
-	secretsList, err := clientset.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
+func secretExists(client kubernetes.Interface, namespace string, secretName string) (bool, error) {
+	secretsList, err := client.CoreV1().Secrets(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return false, err
 	}
