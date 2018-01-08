@@ -5,12 +5,12 @@ import (
 	"github.com/richardcase/vault-initializer/pkg/inject/publisher/environment"
 	"github.com/richardcase/vault-initializer/pkg/inject/publisher/volume"
 	"k8s.io/api/apps/v1beta1"
-	"k8s.io/client-go/kubernetes"
+	clientset "k8s.io/client-go/kubernetes"
 )
 
 // Publisher is an interface that defines what publishers need to implement.
 type Publisher interface {
-	PublishSecrets(vaultmap *v1alpha1.VaultMap, clientset *kubernetes.Clientset, deployment *v1beta1.Deployment, secrets map[string]string) error
+	PublishSecrets(vaultmap *v1alpha1.VaultMap, client clientset.Interface, deployment *v1beta1.Deployment, secrets map[string]string) error
 }
 
 // CreatePublisher create a new secrets publisher
