@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"encoding/json"
 	"testing"
 
 	vi "github.com/richardcase/vault-initializer/pkg/apis/vaultinit/v1alpha1"
@@ -27,17 +28,45 @@ func TestPublishSecretsNoSecretExisting(t *testing.T) {
 	}
 
 	// Check new secret has been created
-	createdSecret, err := fakeClient.CoreV1().Secrets("ns").Get("ns.contnam", metav1.GetOptions{})
+	createdSecret, err := fakeClient.CoreV1().Secrets("ns").Get("ns.contname", metav1.GetOptions{})
 	if createdSecret == nil {
 		t.Error("Expected a secret to be created but none created")
 	}
+	//actualsecret := string(createdSecret.Data["config.json"])
+	secretsMap := make(map[string]interface{})
+	err = json.Unmarshal(createdSecret.Data["config.json"], &secretsMap)
+	if err != nil {
+		t.Errorf("Error unmarshalling JSON secret data: %v", err)
+	}
+	if len(secretsMap) != 2 {
+		t.Errorf("Got unexpected number of secrets")
+	}
+	if secretsMap["secret1"] != "my secret1" {
+		t.Errorf("Got unexpected value for secret: %s", secretsMap["secret1"])
+	}
+	if secretsMap["secret2"] != "my secret2" {
+		t.Errorf("Got unexpected value for secret: %s", secretsMap["secret2"])
+	}
 
-	//container := depl.Spec.Template.Spec.Containers[0]
-	//if len(container.Env) != 2 {
-	//	t.Errorf("Unexpected number of environment variables. Got %d but expected %d", len(container.Env), 2)
-	//}
+	// Check the volume has been created
+	numVolumes := len(depl.Spec.Template.Spec.Volumes)
+	if numVolumes != 1 {
+		t.Errorf("Got unexpected number of volumes. Got %d but expected 1", numVolumes)
+	}
+	secretsVolume := depl.Spec.Template.Spec.Volumes[0]
+	if secretsVolume.Name != "secrets" {
+		t.Errorf("Got unexpected name for volume: %s", secretsVolume.Name)
+	}
+	if secretsVolume.Secret.SecretName != "ns.contname" {
+		t.Errorf("Got unexpected secret name for volume: %s", secretsVolume.Secret.SecretName)
+	}
 
-	//TODO: check the values of the environment variables
+	// Check the volume mount
+	//deployment.Spec.Template.Spec.Containers[0].VolumeMounts
+	numMounts := len(depl.Spec.Template.Spec.Containers[0].VolumeMounts)
+	if numMounts != 1 {
+		t.Errorf("Got unexpected number of volume mounts. Got %d but expected 1", numMounts)
+	}
 
 }
 
@@ -48,7 +77,7 @@ func vaultmap(namespace string, name string) vi.VaultMap {
 			Name:      name,
 		},
 		Spec: vi.MapSpec{
-			SecretNamePattern:      "{.Namespace}}.{{.ContainerName}}",
+			SecretNamePattern:      "{{.Namespace}}.{{.ContainerName}}",
 			SecretsFileNamePattern: "config.json",
 			SecretsFilePathPattern: "/",
 			SecretsPublisher:       "volume",

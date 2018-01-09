@@ -73,7 +73,6 @@ func (p VolumePublisher) PublishSecrets(vaultmap *v1alpha1.VaultMap, client kube
 	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
 
 	// Add volume to container
-
 	mount := corev1.VolumeMount{}
 	mount.Name = "secrets"
 	mount.MountPath = secretFullPath
